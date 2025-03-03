@@ -5,6 +5,9 @@ const dotenv = require("dotenv");
 const Task = require("./models/Task");
 const bcrypt = require("bcryptjs");
 const User = require("./models/User");
+const PendingUser = require("./models/PendingUser");
+const sendVerificationEmail = require("./emailService");
+const crypto = require("crypto");
 
 dotenv.config();
 const app = express();
@@ -16,6 +19,62 @@ mongoose.connect(process.env.MONGO_URI)
     .catch((err) => console.error("❌ MongoDB connection error:", err));
 
 const { ObjectId } = mongoose.Types;
+
+
+
+app.post("/register", async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ message: "⚠️ Email already in use" });
+        }
+
+            const hashedPassword = await bcrypt.hash(password, 10);
+
+        const verificationToken = crypto.randomBytes(32).toString("hex");
+
+        const pendingUser = new PendingUser({
+            email,
+            password: hashedPassword,
+            verificationToken,
+        });
+        await pendingUser.save();
+
+        await sendVerificationEmail(email, verificationToken);
+
+        res.status(201).json({ message: "✅ Verification email sent. Please check your inbox!" });
+    } catch (error) {
+        console.error("❌ Error registering user:", error);
+        res.status(500).json({ message: "Error registering user", error });
+    }
+});
+
+app.get("/verify-email", async (req, res) => {
+    try {
+        const { token } = req.query;
+
+        const pendingUser = await PendingUser.findOne({ verificationToken: token });
+        if (!pendingUser) {
+            return res.status(400).json({ message: "❌ Invalid or expired verification link" });
+        }
+
+        const newUser = new User({
+            email: pendingUser.email,
+            password: pendingUser.password,
+        });
+        await newUser.save();
+
+        await PendingUser.deleteOne({ _id: pendingUser._id });
+
+        res.send("<h1>✅ Email verified! You can now log in.</h1>");
+    } catch (error) {
+        console.error("❌ Error verifying email:", error);
+        res.status(500).json({ message: "Error verifying email", error });
+    }
+});
+
 
 //  Fetch tasks by userId
 app.get("/tasks", async (req, res) => {

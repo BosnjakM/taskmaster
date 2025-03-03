@@ -1,43 +1,38 @@
-const nodemailer = require('nodemailer');
-const dotenv = require('dotenv');
+const nodemailer = require("nodemailer");
+const dotenv = require("dotenv");
 
 dotenv.config();
 
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    service: "gmail", // Nutze Gmail oder andere E-Mail-Provider
     auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        user: process.env.EMAIL_USER, // Deine E-Mail
+        pass: process.env.EMAIL_PASS, // App-Passwort
     },
 });
 
-/**
- * Sendet eine E-Mail mit professionellem HTML-Layout
- * @param {string} recipient - Die Empfänger-E-Mail-Adresse
- * @param {string} subject - Der Betreff der E-Mail
- * @param {string} message - Die Nachricht der E-Mail (wird als HTML formatiert)
- */
-const sendEmail = async (recipient, subject, message) => {
+// 📩 Funktion zum Senden der Verifizierungs-E-Mail
+const sendVerificationEmail = async (email, token) => {
+    const verificationLink = `http://localhost:5002/verify-email?token=${token}`;
+
     const mailOptions = {
-        from: `"TaskMaster" <${process.env.EMAIL_USER}>`,
-        to: recipient,
-        subject: subject,
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: "Verify your email - TaskMaster",
         html: `
-            <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-                <h2 style="color: #333;">📌 ${subject}</h2>
-                <p style="font-size: 16px; color: #555;">${message}</p>
-                <hr />
-                <p style="font-size: 12px; color: #888;">TaskMaster - Ihre Aufgaben immer im Blick.</p>
-            </div>
+            <h1>Welcome to TaskMaster!</h1>
+            <p>Please verify your email by clicking the link below:</p>
+            <a href="${verificationLink}">Verify Email</a>
+            <p>This link expires in 24 hours.</p>
         `,
     };
 
     try {
         await transporter.sendMail(mailOptions);
-        console.log(`📧 Email sent to ${recipient}`);
+        console.log(`📧 Verification email sent to ${email}`);
     } catch (error) {
-        console.error('❌ Error sending email:', error);
+        console.error("❌ Error sending verification email:", error);
     }
 };
 
-module.exports = sendEmail;
+module.exports = sendVerificationEmail;
