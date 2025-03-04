@@ -2,12 +2,14 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
-const Task = require("./models/Task");
+const Task = require("../backend/models/Task");
 const bcrypt = require("bcryptjs");
-const User = require("./models/User");
-const PendingUser = require("./models/PendingUser");
-const sendVerificationEmail = require("./emailService");
+const User = require("../backend/models/User");
+const PendingUser = require("../backend/models/PendingUser");
+const sendVerificationEmail = require("../backend/emailService");
 const crypto = require("crypto");
+const serverless = require("serverless-http");
+
 
 dotenv.config();
 const app = express();
@@ -189,5 +191,5 @@ app.delete("/tasks/:id", async (req, res) => {
 
 
 // Start server
-const PORT = process.env.PORT || 5002;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+module.exports = serverless(app);
+
